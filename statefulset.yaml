@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: nextcloud
+  name: nextcloud
+  namespace: nextcloud
+spec:
+  serviceName: nextcloud
+  selector:
+    matchLabels:
+      app: nextcloud
+      app.kubernetes.io/name: nextcloud
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  template:
+    metadata:
+      # annotations:
+        # prometheus.io/scrape: "true"
+      labels:
+        app: nextcloud
+        app.kubernetes.io/name: nextcloud
+    spec:
+      initContainers:
+      - name: "cp-config"
+        image: "busybox:1.25.0"
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'mkdir -p /var/www/html/config/ && cp /data/config.php /var/www/html/config/config.php && chown -R www-data /var/www/html/config/' ]
+        volumeMounts:
+        - name: workdir
+          mountPath: /data
+        - name: nc-config
+          mountPath: /data/config.php
+          subPath: config.php
+        - name: pv-nextcloud
+          mountPath: /var/www/html
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: pv-nextcloud
+          mountPath: /var/www/html
+        # lifecycle:
+        #   postStart:
+        #     exec:
+        #      command: ["bin/sh", "-c", "mkdir -p /var/www/html"]
+      - name: nextcloud
+        env:
+        - name: NEXTCLOUD_TRUSTED_DOMAINS
+          value: <YOUR_DOMAIN_NAME>
+        - name: MYSQL_HOST
+          value: <YOUR_MYSQL_HOST>
+        - name: MYSQL_DATABASE
+          value: <YOUR_DB_NAME>
+        - name: MYSQL_USER
+          value: <YOUR_DB_USER>
+        - name: MYSQL_PASSWORD
+          value: <YOUR_DB_USER_PASS>
+        image: nextcloud:17.0.1-fpm
+        ports:
+        - containerPort: 9000
+        volumeMounts:
+        - name: pv-nextcloud
+          mountPath: /var/www/html
+        # resources:
+          # limits:
+            # cpu: "1"
+      volumes:
+      - name : nginx-config
+        configMap:
+           name: nginx-config
+      - name: nc-config
+        configMap:
+           name: nc-config
+      - name: workdir
+        emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: pv-nextcloud
+        # emptyDir: {}
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "10Gi"
+        storageClassName: "local-lvm"
