@@ -1,0 +1,65 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  namespace: nextcloud
+  name: nc-config
+data:
+  config.php: |-
+    <?php
+    $CONFIG = array (
+      'loglevel' => 1,
+      'trusted_domains' =>
+      array (
+        0 => '<YOUR_DOMAIN_NAME>',
+      ),
+      'htaccess.RewriteBase' => '/',
+      'memcache.local' => '\\OC\\Memcache\\APCu',
+      'apps_paths' =>
+      array (
+        0 =>
+        array (
+          'path' => '/var/www/html/apps',
+          'url' => '/apps',
+          'writable' => false,
+        ),
+        1 =>
+        array (
+          'path' => '/var/www/html/custom_apps',
+          'url' => '/custom_apps',
+          'writable' => true,
+        ),
+      ),
+      'memcache.distributed' => '\\OC\\Memcache\\Redis',
+      'memcache.locking' => '\\OC\\Memcache\\Redis',
+      'redis' =>
+      array (
+        'host' => 'nextcloud-redis-master',
+        'port' => '6379',
+      ),
+      'objectstore_multibucket' =>
+      array (
+        'class' => '\\OC\\Files\\ObjectStore\\S3',
+        'arguments' =>
+        array (
+          'num_buckets' => 64,
+          'bucket' => 'nextcloud-',
+          'autocreate' => true,
+          'key' => '<S3_USER_NAME>',
+          'secret' => '<S3_USER_PASS>',
+          'use_ssl' => false,
+          'hostname' => '<S3_HOST_NAME>',
+          'port' => 9000,
+          'use_path_style' => true,
+        ),
+      ),
+      'datadirectory' => '/var/www/html/data',
+      'dbtype' => 'mysql',
+      'overwrite.cli.url' => 'http://localhost',
+      'dbname' => '<YOUR_DB_NAME>',
+      'dbhost' => 'YOUR_DB_HOST',
+      'dbport' => '',
+      'dbtableprefix' => 'oc_',
+      'mysql.utf8mb4' => true,
+    'dbuser' => '<YOUR_DB_USER>',
+    'dbpassword' => '<YOUR_DB_USER_PASS>',
+    );
