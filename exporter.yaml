@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud-exporter
+  labels:
+    app: nextcloud-exporter
+  namespace: nextcloud
+spec:
+  selector:
+    matchLabels:
+      app: nextcloud-exporter
+  template:
+    metadata:
+      labels:
+        app: nextcloud-exporter
+    spec:
+      containers:
+        - name: nextcloud-exporter
+          env:
+          - name: NEXTCLOUD_SERVERINFO_URL
+            value: "<YOUR_DOMAIN_NAME>/ocs/v2.php/apps/serverinfo/api/v1/info"
+          - name: NEXTCLOUD_USERNAME
+            value: <YOUR_ADMIN_NAME>
+          - name: NEXTCLOUD_PASSWORD
+            value: <YOUR_ADMIN_PASS>
+          imagePullPolicy: Always
+          image: xperimental/nextcloud-exporter
+          ports:
+            - name: http-metrics
+              containerPort: 9205
+  replicas: 1
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: nextcloud
+  labels:
+    app: nextcloud-exporter
+  name: nextcloud-exporter
+spec:
+  clusterIP: None
+  ports:
+    - name: http-metrics
+      port: 9205
+      targetPort: 9205
+  selector:
+    app: nextcloud-exporter
